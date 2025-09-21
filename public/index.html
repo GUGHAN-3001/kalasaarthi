@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KalaSaarthi - Artisan Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --background: #fefce8; --text-primary: #44403c; --text-secondary: #78716c;
+            --primary: #854d0e; --primary-hover: #713f12; --card-bg: #ffffff;
+            --border-color: #e7e5e4;
+        }
+        html.dark {
+            --background: #1c1917; --text-primary: #f5f5f4; --text-secondary: #a8a29e;
+            --primary: #ca8a04; --primary-hover: #eab308; --card-bg: #292524;
+            --border-color: #57534e;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background); color: var(--text-primary); transition: background-color 0.3s, color 0.3s; }
+        .btn-primary { background-color: var(--primary); color: white; transition: background-color 0.3s; }
+        .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-secondary { background-color: #a8a29e; color: white; transition: background-color 0.3s; }
+        .btn-secondary:hover { background-color: #78716c; }
+        .view-section, .form-section { display: none; }
+        .view-section.active, .form-section.active { display: block; animation: fadeIn 0.5s; }
+        .tab.active { border-bottom-color: var(--primary); color: var(--primary); font-weight: 600; }
+        .spinner, .btn-spinner { animation: spin 1s ease infinite; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: var(--primary); }
+        .btn-spinner { border: 2px solid rgba(255,255,255,0.3); width: 20px; height: 20px; border-radius: 50%; border-left-color: #fff; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .product-card .wishlist-btn { opacity: 0; transition: opacity 0.3s ease; }
+        .product-card:hover .wishlist-btn { opacity: 1; }
+        .step-indicator { display: flex; align-items: center; justify-content: center; font-weight: bold; width: 2.5rem; height: 2.5rem; border-radius: 9999px; transition: all 0.3s ease; background-color: var(--card-bg); border: 1px solid var(--border-color); color: var(--text-secondary); }
+        .step-indicator.active { background-color: var(--primary); color: white; border-color: var(--primary); }
+        .step-indicator.completed { background-color: #22c55e; color: white; border-color: #22c55e; }
+        .card { background-color: var(--card-bg); border: 1px solid var(--border-color); }
+        .text-primary { color: var(--text-primary); }
+        .text-secondary { color: var(--text-secondary); }
+        .border-color { border-color: var(--border-color); }
+        .text-theme { color: var(--primary); }
+    </style>
+</head>
+<body class="bg-stone-100 dark:bg-stone-900">
+
+    <!-- Notification Container -->
+    <div id="notification-container" class="fixed top-5 right-5 z-[100] w-full max-w-xs"></div>
+
+    <!-- Header -->
+    <header id="app-header" class="bg-white dark:bg-stone-800 shadow-sm sticky top-0 z-50 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="py-3 flex justify-between items-center">
+                <div class="text-3xl font-bold text-amber-800 dark:text-amber-500 cursor-pointer" id="logo-btn">Kala<span class="text-amber-600 dark:text-amber-400">Saarthi</span></div>
+                <div class="flex items-center space-x-4">
+                    <span id="user-email" class="text-sm text-stone-600 dark:text-stone-300 hidden md:block"></span>
+                    <button id="theme-toggle-btn" class="text-xl text-stone-500 hover:text-amber-800 dark:hover:text-amber-500"><i class="fas fa-sun"></i></button>
+                    <button id="cart-btn" class="relative hidden"><i class="fas fa-shopping-cart text-xl text-stone-600 dark:text-stone-300"></i><span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">0</span></button>
+                    <button id="sign-out-btn" class="btn-secondary font-bold py-2 px-4 rounded-lg text-sm">Sign Out</button>
+                </div>
+            </div>
+            <nav id="app-nav" class="flex border-b border-color">
+                <button data-view="home-view" class="tab py-3 px-4 text-sm font-medium text-stone-500 dark:text-stone-400 border-b-2 border-transparent hover:text-amber-700">Home</button>
+                <button data-view="marketplace-view" class="tab py-3 px-4 text-sm font-medium text-stone-500 dark:text-stone-400 border-b-2 border-transparent hover:text-amber-700">Marketplace</button>
+                <button data-view="dashboard-view" class="tab py-3 px-4 text-sm font-medium text-stone-500 dark:text-stone-400 border-b-2 border-transparent hover:text-amber-700">My Dashboard</button>
+                <button data-view="support-view" class="tab py-3 px-4 text-sm font-medium text-stone-500 dark:text-stone-400 border-b-2 border-transparent hover:text-amber-700">Help & Support</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- App Container -->
+    <main id="app-container" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="auth-view" class="view-section active"></div>
+        <div id="home-view" class="view-section"></div>
+        <div id="marketplace-view" class="view-section"></div>
+        <div id="dashboard-view" class="view-section"></div>
+        <div id="create-product-view" class="view-section"></div>
+        <div id="cart-view" class="view-section"></div>
+        <div id="support-view" class="view-section"></div>
+    </main>
+    
+    <!-- Footer -->
+    <footer id="app-footer" class="bg-white dark:bg-stone-800 mt-16 hidden">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 text-center text-stone-500 dark:text-stone-400 text-sm">
+            <p>&copy; 2025 KalaSaarthi. Empowering Artisans, Celebrating Craft.</p>
+        </div>
+    </footer>
+
+    <!-- MODALS -->
+    <div id="delete-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 h-full w-full z-50 flex items-center justify-center"></div>
+    <div id="filter-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 h-full w-full z-50 flex items-center justify-center"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, doc, setDoc, getDoc, where, writeBatch, updateDoc, deleteDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDKHP6cRLCbH5IhFjYlZm0uy8qVddf-6cQ",
+            authDomain: "kalasaarthi-live.firebaseapp.com",
+            projectId: "kalasaarthi-live",
+            storageBucket: "kalasaarthi-live.firebasestorage.app",
+            messagingSenderId: "1019177972929",
+            appId: "1:1019177972929:web:4b8c21dc659af41a6b5040",
+            measurementId: "G-8J9FMLX801"
+        };
+        
+        // ====================================================================================
+        // IMPORTANT: PASTE YOUR GEMINI API KEY HERE
+        // You can get a free key from Google AI Studio: https://aistudio.google.com/
+        // ====================================================================================
+        const GEMINI_API_KEY = "AIzaSyD-_B6IFjDlorwnFxfyZ30hMqQtROxtHUM";
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null, allProducts = [], cart = [], isSignUpMode = false, productsUnsubscribe = null, uploadedImageUrls = [];
+
+        const ui = {
+            appHeader: document.getElementById('app-header'),
+            appFooter: document.getElementById('app-footer'),
+            viewSections: document.querySelectorAll('.view-section'),
+            appNav: document.getElementById('app-nav'),
+            logoBtn: document.getElementById('logo-btn'),
+            userEmail: document.getElementById('user-email'),
+            themeToggleBtn: document.getElementById('theme-toggle-btn'),
+            cartBtn: document.getElementById('cart-btn'),
+            cartCount: document.getElementById('cart-count'),
+            signOutBtn: document.getElementById('sign-out-btn'),
+            deleteModal: document.getElementById('delete-confirm-modal'),
+            filterModal: document.getElementById('filter-modal'),
+        };
+
+        function showNotification(message, type = 'success') {
+            const container = document.getElementById('notification-container');
+            const bgColor = type === 'error' ? 'bg-red-600' : 'bg-green-600';
+            const notif = document.createElement('div');
+            notif.className = `p-4 rounded-lg shadow-lg text-white ${bgColor} mb-2 transition-all duration-300 transform translate-x-full`;
+            notif.textContent = message;
+            container.appendChild(notif);
+
+            setTimeout(() => { notif.classList.remove('translate-x-full'); }, 10);
+            setTimeout(() => {
+                notif.classList.add('translate-x-full');
+                setTimeout(() => notif.remove(), 300);
+            }, 3000);
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            ui.themeToggleBtn.innerHTML = theme === 'dark' ? `<i class="fas fa-sun"></i>` : `<i class="fas fa-moon"></i>`;
+        }
+
+        ui.themeToggleBtn.addEventListener('click', () => {
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (productsUnsubscribe) productsUnsubscribe();
+            if (user) {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    currentUser = { uid: user.uid, email: user.email, ...userDoc.data() };
+                    initializeAppUI();
+                    listenToProducts();
+                } else { signOut(auth); }
+            } else {
+                currentUser = null;
+                renderAuthView();
+                showView('auth-view');
+                ui.appHeader.classList.add('hidden');
+                ui.appFooter.classList.add('hidden');
+            }
+        });
+        
+        function listenToProducts() {
+            productsUnsubscribe = onSnapshot(query(collection(db, "products")), (snapshot) => {
+                allProducts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const activeView = document.querySelector('.view-section.active')?.id;
+                if (['marketplace-view', 'home-view', 'dashboard-view'].includes(activeView)) {
+                    setActiveView(activeView);
+                }
+            });
+        }
+
+        function initializeAppUI() {
+            ui.userEmail.textContent = currentUser.email;
+            ui.appHeader.classList.remove('hidden');
+            ui.appFooter.classList.remove('hidden');
+            ui.cartBtn.classList.toggle('hidden', currentUser.role !== 'buyer');
+            applyTheme(localStorage.getItem('theme') || 'light');
+            setActiveView('home-view');
+        }
+
+        function showView(viewId) {
+            ui.viewSections.forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId)?.classList.add('active');
+        }
+
+        function setActiveView(viewId) {
+            document.querySelectorAll('#app-nav .tab').forEach(t => t.classList.toggle('active', t.dataset.view === viewId) );
+            const viewRenderers = {
+                'home-view': renderHome, 'dashboard-view': renderDashboard,
+                'cart-view': renderCart, 'marketplace-view': renderMarketplace,
+                'support-view': renderSupport, 'create-product-view': renderCreateProductView
+            };
+            viewRenderers[viewId]?.();
+            showView(viewId);
+        }
+
+        function setLoading(button, isLoading, text) {
+            button.disabled = isLoading;
+            button.innerHTML = isLoading ? `<div class="btn-spinner animate-spin"></div>` : text;
+        }
+        
+        ui.appNav.addEventListener('click', (e) => { if (e.target.matches('.tab')) setActiveView(e.target.dataset.view); });
+        ui.logoBtn.addEventListener('click', () => setActiveView('home-view'));
+        ui.cartBtn.addEventListener('click', () => setActiveView('cart-view'));
+        ui.signOutBtn.addEventListener('click', () => signOut(auth));
+
+        function renderAuthView() {
+            const container = document.getElementById('auth-view');
+            container.innerHTML = `<div class="card max-w-md mx-auto p-8 rounded-2xl shadow-lg"><div class="text-center mb-8"><h1 class="text-3xl font-bold text-theme">Welcome</h1></div><div id="auth-error" class="hidden bg-red-100 text-red-700 px-4 py-3 rounded-lg mb-6"><span id="auth-error-message"></span></div><form id="auth-form" class="space-y-4"><input type="email" id="email-input" placeholder="Email Address" required class="w-full p-3 border rounded-lg bg-transparent border-color"><input type="password" id="password-input" placeholder="Password" required class="w-full p-3 border rounded-lg bg-transparent border-color"><div id="role-selection" class="hidden pt-2"><p class="text-sm font-medium text-secondary mb-2">I am a:</p><div class="flex space-x-4"><label class="flex-1"><input type="radio" name="role" value="buyer" class="sr-only peer" checked><div class="p-4 border rounded-lg cursor-pointer peer-checked:bg-amber-100 dark:peer-checked:bg-amber-900 peer-checked:border-amber-700">Buyer</div></label><label class="flex-1"><input type="radio" name="role" value="seller" class="sr-only peer"><div class="p-4 border rounded-lg cursor-pointer peer-checked:bg-amber-100 dark:peer-checked:bg-amber-900 peer-checked:border-amber-700">Seller</div></label></div></div><button type="submit" id="auth-submit-btn" class="w-full btn-primary font-bold py-3 rounded-lg flex items-center justify-center"></button></form><p class="text-center text-sm mt-6 text-secondary"><span id="auth-prompt-text"></span> <a href="#" id="auth-toggle-link" class="font-semibold text-theme"></a></p></div>`;
+            container.querySelector('#auth-form').addEventListener('submit', handleAuthSubmit);
+            container.querySelector('#auth-toggle-link').addEventListener('click', (e) => { e.preventDefault(); toggleAuthMode(); });
+            isSignUpMode = true; // Set to true initially so the first call to toggleAuthMode sets it to false (Sign In)
+            toggleAuthMode();
+        }
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            const authForm = document.getElementById('auth-form');
+            if(authForm) {
+                authForm.reset();
+                document.getElementById('auth-error').classList.add('hidden');
+                document.getElementById('role-selection').classList.toggle('hidden', !isSignUpMode);
+                document.getElementById('auth-submit-btn').textContent = isSignUpMode ? 'Sign Up' : 'Sign In';
+                document.getElementById('auth-prompt-text').textContent = isSignUpMode ? 'Already have an account?' : "No account?";
+                document.getElementById('auth-toggle-link').textContent = isSignUpMode ? 'Sign In' : 'Sign Up';
+            }
+        }
+        
+        async function handleAuthSubmit(e) {
+            e.preventDefault();
+            const text = isSignUpMode ? 'Sign Up' : 'Sign In';
+            const authSubmitBtn = document.getElementById('auth-submit-btn');
+            setLoading(authSubmitBtn, true, text);
+            const email = document.getElementById('email-input').value;
+            const password = document.getElementById('password-input').value;
+            try {
+                if (isSignUpMode) {
+                    const role = document.querySelector('input[name="role"]:checked').value;
+                    const cred = await createUserWithEmailAndPassword(auth, email, password);
+                    await setDoc(doc(db, "users", cred.user.uid), { email: cred.user.email, role: role, address: {}, wishlist: [] });
+                } else { await signInWithEmailAndPassword(auth, email, password); }
+            } catch (error) { 
+                document.getElementById('auth-error-message').textContent = error.message;
+                document.getElementById('auth-error').classList.remove('hidden');
+            }
+            setLoading(authSubmitBtn, false, text);
+        }
+
+        function renderHome() {
+            const container = document.getElementById('home-view');
+            container.innerHTML = `<div class="card rounded-2xl shadow-lg p-8 text-center"><h2 class="text-4xl font-bold text-primary">Discover Authentic Indian Handicrafts</h2><p class="text-secondary mt-4 max-w-2xl mx-auto">A marketplace dedicated to bringing the finest work of local artisans directly to you. Every piece tells a story.</p><div class="mt-8 max-w-lg mx-auto"><div class="relative"><i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i><input type="text" id="home-search-input" placeholder="Search for products..." class="w-full p-4 pl-12 border rounded-full focus:ring-2 focus:ring-amber-500 bg-transparent border-color"><button id="voice-search-btn" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-amber-500"><i class="fas fa-microphone"></i></button></div></div></div><div class="mt-12"><h3 class="text-2xl font-bold mb-6 text-primary">Shop by Category</h3><div id="category-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6"></div></div><div class="mt-12"><h3 class="text-2xl font-bold mb-6 text-primary">Featured Products</h3><div id="featured-products-grid" class="grid grid-cols-1 md:grid-cols-4 gap-6"></div></div>`;
+            
+            document.getElementById('home-search-input').addEventListener('keyup', (e) => {
+                if(e.key === 'Enter') {
+                    setActiveView('marketplace-view');
+                    document.getElementById('search-input').value = e.target.value;
+                    applyFiltersAndRender();
+                }
+            });
+            document.getElementById('voice-search-btn').addEventListener('click', startVoiceSearch);
+            
+            const categories = [ { name: 'Saree', icon: 'fa-tshirt' }, { name: 'Jewelry', icon: 'fa-gem' }, { name: 'Painting', icon: 'fa-palette' }, { name: 'Pottery', icon: 'fa-bowling-ball' }];
+            const categoryGrid = document.getElementById('category-grid');
+            categoryGrid.innerHTML = categories.map(cat => `<div data-category="${cat.name}" class="category-card card p-6 rounded-lg shadow text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-transform"><i class="fas ${cat.icon} text-4xl text-theme"></i><p class="font-bold mt-4 text-primary">${cat.name}</p></div>`).join('');
+            categoryGrid.addEventListener('click', e => {
+                const card = e.target.closest('.category-card');
+                if(card) {
+                    setActiveView('marketplace-view');
+                    if (!document.getElementById('filter-category')) { // Create temp element if filter modal hasn't been rendered
+                        const tempSelect = document.createElement('select');
+                        tempSelect.id = 'filter-category';
+                        tempSelect.style.display = 'none';
+                        document.body.appendChild(tempSelect);
+                    }
+                    document.getElementById('filter-category').value = card.dataset.category;
+                    applyFiltersAndRender();
+                }
+            });
+            
+            const featuredGrid = document.getElementById('featured-products-grid');
+            const featuredProducts = allProducts.filter(p => p.status === 'available').slice(0, 4);
+            renderProductGrid(featuredGrid, featuredProducts);
+        }
+        
+        function startVoiceSearch() {
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                showNotification("Voice search is not supported by your browser.", "error");
+                return;
+            }
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            const searchInput = document.getElementById('home-search-input');
+            const originalPlaceholder = searchInput.placeholder;
+            searchInput.placeholder = "Listening...";
+            recognition.start();
+            recognition.onresult = (event) => {
+                const speechResult = event.results[0][0].transcript;
+                searchInput.value = speechResult;
+                setActiveView('marketplace-view');
+                document.getElementById('search-input').value = speechResult;
+                applyFiltersAndRender();
+            };
+            recognition.onspeechend = () => { recognition.stop(); searchInput.placeholder = originalPlaceholder; };
+            recognition.onerror = (event) => { console.error("Voice search error", event.error); searchInput.placeholder = originalPlaceholder; };
+        }
+
+        function renderDashboard() {
+            const container = document.getElementById('dashboard-view');
+            if (currentUser.role === 'seller') {
+                container.innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-bold text-primary">Seller Dashboard</h2><button id="go-to-create-btn" class="btn-primary font-bold py-2 px-6 rounded-lg">Create New Listing</button></div><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2 card shadow p-6 rounded-lg"><h3 class="font-semibold mb-4 text-primary">My Products</h3><div id="seller-products-list"></div></div><div class="card shadow p-6 rounded-lg"><h3 class="font-semibold mb-4 text-primary">Sales Analytics</h3><canvas id="sales-chart"></canvas></div></div>`;
+                document.getElementById('go-to-create-btn').addEventListener('click', () => renderCreateProductView());
+                renderSellerProducts();
+            } else {
+                container.innerHTML = `<h2 class="text-3xl font-bold mb-6 text-primary">My Dashboard</h2><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="md:col-span-2"><h3 class="text-xl font-semibold mb-4 text-primary">My Orders</h3><div id="buyer-orders-list" class="space-y-4"></div></div><div><h3 class="text-xl font-semibold mb-4 text-primary">My Profile</h3><div class="card shadow p-6 rounded-lg"><form id="address-form" class="space-y-4"><input type="text" id="name" placeholder="Full Name" class="w-full p-2 border rounded bg-transparent border-color" value="${currentUser.address?.name || ''}"><textarea id="address" placeholder="Shipping Address" class="w-full p-2 border rounded bg-transparent border-color" rows="3">${currentUser.address?.address || ''}</textarea><input type="text" id="city" placeholder="City" class="w-full p-2 border rounded bg-transparent border-color" value="${currentUser.address?.city || ''}"><input type="text" id="pincode" placeholder="Pincode" class="w-full p-2 border rounded bg-transparent border-color" value="${currentUser.address?.pincode || ''}"><button type="submit" class="btn-primary font-bold py-2 px-6 rounded-lg">Save Address</button></form></div><h3 class="text-xl font-semibold mt-8 mb-4 text-primary">My Wishlist</h3><div id="wishlist-container" class="space-y-4"></div></div></div>`;
+                renderBuyerOrders();
+                renderWishlist();
+                document.getElementById('address-form').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const address = { name: document.getElementById('name').value, address: document.getElementById('address').value, city: document.getElementById('city').value, pincode: document.getElementById('pincode').value };
+                    await updateDoc(doc(db, "users", currentUser.uid), { address });
+                    showNotification("Address saved successfully!");
+                });
+            }
+        }
+
+        function renderSellerProducts() {
+            const listContainer = document.getElementById('seller-products-list');
+            const q = query(collection(db, "products"), where("artisan_id", "==", currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                if (snapshot.empty) { listContainer.innerHTML = `<p class="p-8 text-center text-secondary">You haven't listed any products yet.</p>`; return; }
+                listContainer.innerHTML = `<ul class="divide-y divide-gray-200 dark:divide-stone-700">${snapshot.docs.map(doc => { const p = doc.data(); const statusClass = p.status === 'sold' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'; return `<li class="p-4 flex justify-between items-center"><div><p class="font-semibold text-primary">${p.title}</p><p class="text-sm text-secondary">₹${p.price}</p></div><div class="flex items-center space-x-4"><span class="text-xs font-medium px-2 py-1 rounded-full ${statusClass}">${p.status}</span><button data-id="${doc.id}" class="delete-product-btn text-gray-400 hover:text-red-600 text-lg p-2 rounded-full hover:bg-red-100"><i class="fas fa-trash pointer-events-none"></i></button></div></li>`; }).join('')}</ul>`;
+            });
+            if (!listContainer.dataset.listenerAttached) {
+                listContainer.addEventListener('click', (e) => { const btn = e.target.closest('.delete-product-btn'); if (btn) showDeleteConfirmation(btn.dataset.id); });
+                listContainer.dataset.listenerAttached = 'true';
+            }
+        }
+
+        function renderBuyerOrders() {
+            const q = query(collection(db, "orders"), where("buyer_id", "==", currentUser.uid));
+            onSnapshot(q, (snapshot) => {
+                const listEl = document.getElementById('buyer-orders-list');
+                if (snapshot.empty) { listEl.innerHTML = `<p class="p-8 text-center text-secondary card shadow rounded-lg">You haven't placed any orders yet.</p>`; return; }
+                listEl.innerHTML = snapshot.docs.map(doc => { const order = doc.data(); return `<div class="card shadow p-6 rounded-lg"><p class="font-semibold text-secondary text-sm">Order ID: ${doc.id}</p><p class="font-bold text-xl mt-2 text-primary">Total: ₹${order.totalPrice}</p><div class="mt-4"><h4 class="font-semibold text-primary">Items:</h4><ul class="list-disc pl-5 mt-2 text-sm text-secondary">${order.items.map(item => `<li>${item.title}</li>`).join('')}</ul></div></div>`; }).join('');
+            });
+        }
+        
+        function renderWishlist() {
+            const container = document.getElementById('wishlist-container');
+            const wishlistItems = allProducts.filter(p => currentUser.wishlist?.includes(p.id));
+            if(wishlistItems.length === 0) {
+                container.innerHTML = `<div class="card p-6 rounded-lg shadow text-center text-secondary">Your wishlist is empty.</div>`;
+                return;
+            }
+            container.innerHTML = `<div class="card rounded-lg shadow"><ul class="divide-y">${wishlistItems.map(p => `<li class="p-4 flex justify-between items-center"><div><p class="font-semibold text-primary">${p.title}</p><p class="text-sm text-secondary">₹${p.price}</p></div><button data-id="${p.id}" class="toggle-wishlist-btn text-red-500"><i class="fas fa-heart"></i></button></li>`).join('')}</ul></div>`;
+        }
+        
+        function showDeleteConfirmation(productId) {
+            ui.deleteModal.innerHTML = `<div class="relative m-4 w-full max-w-md card shadow-lg rounded-2xl p-6"><div class="mt-3 text-center"><div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100"><i class="fas fa-exclamation-triangle text-red-600 text-xl"></i></div><h3 class="text-lg leading-6 font-medium text-primary mt-2">Delete Product</h3><div class="mt-2 px-7 py-3"><p class="text-sm text-secondary">Are you sure? This action is permanent.</p></div><div class="items-center px-4 py-3"><button id="confirm-delete-btn" data-id="${productId}" class="px-4 py-2 bg-red-600 text-white rounded-md w-auto hover:bg-red-700">Delete</button><button id="cancel-delete-btn" class="px-4 py-2 bg-gray-200 dark:bg-stone-600 rounded-md w-auto ml-2 hover:bg-gray-300">Cancel</button></div></div></div>`;
+            ui.deleteModal.classList.remove('hidden');
+            ui.deleteModal.querySelector('#cancel-delete-btn').addEventListener('click', () => ui.deleteModal.classList.add('hidden'));
+            ui.deleteModal.querySelector('#confirm-delete-btn').addEventListener('click', async (e) => {
+                await deleteProduct(e.target.dataset.id);
+                ui.deleteModal.classList.add('hidden');
+            });
+        }
+
+        async function deleteProduct(productId) {
+            try { 
+                await deleteDoc(doc(db, "products", productId)); 
+                showNotification("Product deleted successfully.");
+            } 
+            catch (error) { 
+                console.error("Error deleting product:", error); 
+                showNotification("Error deleting product.", "error");
+            }
+        }
+
+        function renderMarketplace() {
+            const container = document.getElementById('marketplace-view');
+            container.innerHTML = `<div class="mb-6 flex justify-between items-center"><h2 class="text-3xl font-bold text-primary">Explore Crafts</h2><button id="open-filters-btn" class="btn-secondary font-bold py-2 px-4 rounded-lg"><i class="fas fa-filter mr-2"></i>Filters</button></div><div id="product-grid-container"><div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div><div id="no-products-message" class="hidden text-center py-20 card rounded-lg shadow"><h3 class="text-2xl font-bold text-secondary">No Products Found</h3></div></div><div id="product-detail-view" class="hidden"></div>`;
+            
+            container.querySelector('#product-grid').addEventListener('click', e => { const card = e.target.closest('[data-id]'); if (card) renderProductDetail(card.dataset.id); });
+            container.querySelector('#open-filters-btn').addEventListener('click', renderFilterModal);
+            
+            applyFiltersAndRender();
+        }
+
+        function renderFilterModal() {
+            ui.filterModal.innerHTML = `<div class="relative m-4 w-full max-w-md card shadow-xl rounded-2xl p-8"><div class="flex justify-between items-center mb-6"><h3 class="font-bold text-xl text-primary">Filters</h3><button id="close-filters-btn" class="text-2xl text-secondary hover:text-primary">&times;</button></div><div class="space-y-4"><div><label class="font-semibold text-sm">Category</label><select id="filter-category" class="w-full mt-1 p-2 border rounded bg-transparent border-color"><option value="all">All</option><option>Saree</option><option>Jewelry</option><option>Painting</option><option>Pottery</option></select></div><div><label class="font-semibold text-sm">Color</label><select id="filter-color" class="w-full mt-1 p-2 border rounded bg-transparent border-color"><option value="all">All</option><option>Red</option><option>Blue</option><option>Green</option><option>Gold</option><option>Silver</option></select></div><div><label class="font-semibold text-sm">Price</label><input type="range" id="filter-price" min="0" max="10000" step="500" value="10000" class="w-full mt-1"><span id="price-value" class="text-sm text-secondary">Up to ₹10000</span></div><div><label class="font-semibold text-sm">Sort By</label><select id="sort-by" class="w-full mt-1 p-2 border rounded bg-transparent border-color"><option value="newest">Newest</option><option value="price-asc">Price: Low to High</option><option value="price-desc">Price: High to Low</option></select></div><button id="apply-filters-btn" class="w-full btn-primary py-2 rounded-lg mt-4">Apply Filters</button></div></div>`;
+            ui.filterModal.classList.remove('hidden');
+            ui.filterModal.querySelector('#close-filters-btn').addEventListener('click', () => ui.filterModal.classList.add('hidden'));
+            ui.filterModal.querySelector('#apply-filters-btn').addEventListener('click', () => {
+                applyFiltersAndRender();
+                ui.filterModal.classList.add('hidden');
+            });
+            ui.filterModal.querySelector('#filter-price').addEventListener('input', e => {
+                ui.filterModal.querySelector('#price-value').textContent = `Up to ₹${e.target.value}`;
+            });
+        }
+
+        function applyFiltersAndRender() {
+            let filteredProducts = [...allProducts];
+            const categoryEl = document.getElementById('filter-category');
+            const colorEl = document.getElementById('filter-color');
+            const priceEl = document.getElementById('filter-price');
+            const sortByEl = document.getElementById('sort-by');
+
+            if (categoryEl && categoryEl.value !== 'all') filteredProducts = filteredProducts.filter(p => p.category === categoryEl.value);
+            if (colorEl && colorEl.value !== 'all') filteredProducts = filteredProducts.filter(p => p.color === colorEl.value);
+            if (priceEl) filteredProducts = filteredProducts.filter(p => p.price <= Number(priceEl.value));
+
+            if (sortByEl) {
+                if (sortByEl.value === 'price-asc') filteredProducts.sort((a, b) => a.price - b.price);
+                else if (sortByEl.value === 'price-desc') filteredProducts.sort((a, b) => b.price - a.price);
+                else filteredProducts.sort((a, b) => b.createdAt?.seconds - a.createdAt?.seconds);
+            }
+            
+            renderProductGrid(document.getElementById('product-grid'), filteredProducts);
+            const noProductsMessage = document.getElementById('no-products-message');
+            if(noProductsMessage) noProductsMessage.classList.toggle('hidden', filteredProducts.length > 0);
+        }
+        
+        function renderProductGrid(gridElement, products) {
+            if(!gridElement) return;
+            gridElement.innerHTML = products.map(p => { const soldOut = p.status === 'sold'; const isClickable = !soldOut || (currentUser && currentUser.role === 'seller'); const classes = `card product-card shadow-md overflow-hidden ${isClickable ? 'cursor-pointer hover:-translate-y-1 transition-transform' : ''} ${soldOut ? 'opacity-50' : ''}`; const dataId = isClickable ? `data-id="${p.id}"` : ''; return `<div class="${classes}" ${dataId}><div class="h-56 relative"><img class="w-full h-full object-cover" src="${p.images[0]}" alt="${p.title}" onerror="this.onerror=null;this.src='https://placehold.co/600x400/EEE/31343C?text=Image+Not+Found';">${soldOut ? '<div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center"><span class="text-white font-bold text-lg">Sold Out</span></div>' : ''}</div><div class="p-4"><h3 class="font-bold truncate text-primary">${p.title}</h3><p class="text-xl font-bold text-theme mt-2">₹${p.price}</p></div></div>`; }).join('');
+        }
+
+        function renderProductDetail(productId) {
+            const p = allProducts.find(prod => prod.id === productId);
+            if (!p) return;
+            const detailContainer = document.getElementById('product-detail-view');
+            let actionButton = '';
+            if (currentUser.role === 'buyer') {
+                actionButton = `<button data-id="${p.id}" class="add-to-cart-btn w-full mt-8 btn-primary font-bold py-3 text-lg rounded-lg">Add to Cart</button>`;
+            } else if (currentUser.role === 'seller' && currentUser.uid === p.artisan_id) {
+                const newStatus = p.status === 'available' ? 'sold' : 'available';
+                const buttonText = p.status === 'available' ? 'Mark as Sold' : 'Mark as Available';
+                actionButton = `<button data-id="${p.id}" data-new-status="${newStatus}" class="toggle-status-btn w-full mt-8 btn-secondary font-bold py-3 text-lg rounded-lg">${buttonText}</button>`;
+            }
+            detailContainer.innerHTML = `<div class="card p-8 rounded-2xl shadow-lg"><button id="back-to-grid" class="btn-secondary font-bold py-2 px-4 mb-6 rounded-lg"><i class="fas fa-arrow-left mr-2"></i>Back</button><div class="grid md:grid-cols-2 gap-8"><div><div class="mb-4"><img id="main-product-image" src="${p.images[0]}" class="w-full rounded-lg shadow-lg" onerror="this.onerror=null;this.src='https://placehold.co/600x400/EEE/31343C?text=Image+Not+Found';"></div><div id="thumbnail-images" class="grid grid-cols-4 gap-2">${(p.images || []).map((img, i) => `<img src="${img}" class="w-full rounded-md cursor-pointer border-2 ${i === 0 ? 'border-amber-700' : 'border-transparent'}" onerror="this.onerror=null;this.src='https://placehold.co/150x100/EEE/31343C?text=X';">`).join('')}</div></div><div><h2 class="text-4xl font-bold text-primary">${p.title}</h2><p class="text-4xl font-bold text-theme mt-6">₹${p.price}</p><p class="mt-6 text-secondary">${p.desc}</p>${actionButton}</div></div></div>`;
+            document.getElementById('product-grid-container').classList.add('hidden');
+            detailContainer.classList.remove('hidden');
+            detailContainer.querySelector('#back-to-grid').addEventListener('click', () => { detailContainer.classList.add('hidden'); document.getElementById('product-grid-container').classList.remove('hidden'); });
+            const cartBtn = detailContainer.querySelector('.add-to-cart-btn');
+            if(cartBtn) cartBtn.addEventListener('click', (e) => addToCart(e.target.dataset.id));
+            const statusBtn = detailContainer.querySelector('.toggle-status-btn');
+            if(statusBtn) statusBtn.addEventListener('click', (e) => toggleProductStatus(e.target.dataset.id, e.target.dataset.newStatus));
+            const thumbnails = detailContainer.querySelectorAll('#thumbnail-images img');
+            thumbnails.forEach((thumb, index) => thumb.addEventListener('click', () => {
+                document.getElementById('main-product-image').src = p.images[index];
+                thumbnails.forEach(t => t.classList.remove('border-amber-700'));
+                thumb.classList.add('border-amber-700');
+            }));
+        }
+        
+        async function toggleProductStatus(productId, newStatus) {
+            const productRef = doc(db, "products", productId);
+            await updateDoc(productRef, { status: newStatus });
+            showNotification(`Product status updated to ${newStatus}.`);
+            renderProductDetail(productId);
+        }
+        
+        async function toggleWishlist(productId) {
+            const userRef = doc(db, "users", currentUser.uid);
+            if (currentUser.wishlist?.includes(productId)) {
+                await updateDoc(userRef, { wishlist: arrayRemove(productId) });
+            } else {
+                await updateDoc(userRef, { wishlist: arrayUnion(productId) });
+            }
+            const userDoc = await getDoc(userRef);
+            currentUser.wishlist = userDoc.data().wishlist;
+            
+            const heartIcons = document.querySelectorAll(`.wishlist-btn[data-id="${productId}"] i`);
+            heartIcons.forEach(icon => icon.classList.toggle('fas', currentUser.wishlist.includes(productId)));
+            heartIcons.forEach(icon => icon.classList.toggle('far', !currentUser.wishlist.includes(productId)));
+        }
+
+        function addToCart(productId) {
+            if (cart.find(item => item.id === productId)) {
+                showNotification("This item is already in your cart.", "error");
+                return;
+            }
+            cart.push(allProducts.find(p => p.id === productId));
+            updateCartCount();
+            showNotification("Item added to cart!");
+        }
+        function updateCartCount() { ui.cartCount.textContent = cart.length; }
+        function renderCart() {
+            const container = document.getElementById('cart-view');
+            if (cart.length === 0) { container.innerHTML = `<div class="text-center card p-12 rounded-lg shadow"><h2 class="text-2xl font-bold text-primary">Your Cart is Empty</h2></div>`; return; }
+            const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+            container.innerHTML = `<div class="card p-8 rounded-lg shadow"><h2 class="text-3xl font-bold mb-6 text-primary">My Cart</h2><div class="divide-y border-color">${cart.map(p => `<div class="py-4 flex justify-between items-center"><div><p class="font-semibold text-primary">${p.title}</p><p class="text-sm text-secondary">₹${p.price}</p></div><button data-id="${p.id}" class="remove-from-cart-btn text-red-500 hover:text-red-700 font-bold text-2xl">&times;</button></div>`).join('')}</div><div class="mt-6 pt-6 border-t border-color"><p class="text-2xl font-bold text-right text-primary">Total: ₹${totalPrice}</p><button id="checkout-btn" class="w-full mt-4 btn-primary font-bold py-3 text-lg rounded-lg">Place Order</button></div></div>`;
+            document.getElementById('checkout-btn').addEventListener('click', placeOrder);
+            container.querySelectorAll('.remove-from-cart-btn').forEach(btn => btn.addEventListener('click', e => { cart = cart.filter(item => item.id !== e.target.dataset.id); updateCartCount(); renderCart(); }));
+        }
+        async function placeOrder() {
+            const batch = writeBatch(db);
+            const orderRef = doc(collection(db, "orders"));
+            batch.set(orderRef, { buyer_id: currentUser.uid, items: cart.map(p => ({ id: p.id, title: p.title, price: p.price })), totalPrice: cart.reduce((sum, item) => sum + item.price, 0), createdAt: serverTimestamp() });
+            cart.forEach(p => batch.update(doc(db, "products", p.id), { status: "sold" }));
+            await batch.commit();
+            cart = [];
+            updateCartCount();
+            showNotification("Order placed successfully!");
+            setActiveView('dashboard-view');
+        }
+        
+        function renderSupport() {
+            document.getElementById('support-view').innerHTML = `<div class="card p-8 rounded-lg shadow"><h2 class="text-3xl font-bold text-primary">Help & Support</h2><p class="mt-4 text-secondary">For any queries, please contact us at <a href="mailto:support@kalasaarthi.com" class="text-theme">support@kalasaarthi.com</a></p><p class="mt-2 text-secondary">Our customer service feature is coming soon!</p></div>`;
+        }
+
+        function renderCreateProductView() {
+            const container = document.getElementById('create-product-view');
+            container.innerHTML = `<div class="max-w-5xl mx-auto card p-8 rounded-2xl shadow-lg"><button id="back-to-dashboard-btn" class="btn-secondary font-bold py-2 px-4 rounded-lg mb-6"><i class="fas fa-arrow-left mr-2"></i>Back</button><div class="flex items-center justify-center mb-8"><div id="step-1-indicator" class="step-indicator">1</div><div class="flex-auto border-t-2 mx-4 border-color"></div><div id="step-2-indicator" class="step-indicator">2</div><div class="flex-auto border-t-2 mx-4 border-color"></div><div id="step-3-indicator" class="step-indicator">3</div></div><section id="step-1" class="form-section"><h2 class="text-2xl font-bold text-primary">Step 1: Upload Photos</h2><input type="file" id="photo-upload" multiple class="mt-6"/><div id="upload-error" class="hidden text-red-600 text-sm mt-2"></div><div id="image-previews" class="mt-6 grid grid-cols-3 gap-4"></div><div class="mt-8 text-right"><button id="next-to-step-2" class="btn-primary font-bold py-2 px-6" disabled>Next</button></div></section><section id="step-2" class="form-section"><h2 class="text-2xl font-bold text-primary">Step 2: Add Details & Story</h2><div class="grid md:grid-cols-2 gap-6 mt-6"><div><label class="font-semibold text-sm">Category</label><select id="product-category" class="w-full mt-1 p-2 border rounded bg-transparent border-color"><option>Saree</option><option>Jewelry</option><option>Painting</option><option>Pottery</option><option>Other</option></select></div><div><label class="font-semibold text-sm">Primary Color</label><select id="product-color" class="w-full mt-1 p-2 border rounded bg-transparent border-color"><option>Red</option><option>Blue</option><option>Green</option><option>Gold</option><option>Silver</option><option>Black</option><option>White</option><option>Multicolor</option></select></div></div><textarea id="story-input" rows="5" class="w-full p-3 border mt-6 bg-transparent border-color" placeholder="Share your story..."></textarea><div class="mt-8 flex justify-between"><button id="back-to-step-1" class="btn-secondary font-bold py-2 px-6">Back</button><button id="generate-listing-btn" class="btn-primary font-bold py-2 px-6" disabled>Generate</button></div></section><section id="step-3" class="form-section"><div id="ai-text-generation" class="flex flex-col items-center p-8"><div class="spinner animate-spin"></div><p class="mt-2 text-secondary">Generating content...</p></div><div id="listing-review" class="hidden"><h2 class="text-2xl font-bold text-primary">Step 3: Review & Publish</h2><div class="space-y-4 mt-6"><input type="text" id="product-title" placeholder="Title" class="w-full p-2 border rounded bg-transparent border-color"><textarea id="product-desc" rows="4" placeholder="Description" class="w-full p-2 border rounded bg-transparent border-color"></textarea><input type="text" id="product-tags" placeholder="Tags (comma-separated)" class="w-full p-2 border rounded bg-transparent border-color"><input type="number" id="product-price" placeholder="Price (INR)" class="w-full p-2 border rounded bg-transparent border-color"></div><div class="mt-8 flex justify-between"><button id="back-to-step-2" class="btn-secondary font-bold py-2 px-6">Back</button><button id="publish-btn" class="btn-primary font-bold py-2 px-6 flex items-center justify-center">Publish</button></div></div></section><div id="success-message" class="hidden text-center py-10"><i class="fas fa-check-circle text-6xl text-green-500"></i><h2 class="text-3xl mt-4 text-primary">Published!</h2><p class="mt-4 text-secondary">ID: <span id="doc-id"></span></p><button id="create-another-btn" class="mt-6 btn-primary font-bold py-2 px-6">Create Another</button></div></div>`;
+            
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => setActiveView('dashboard-view'));
+            document.getElementById('photo-upload').addEventListener('change', handlePhotoUpload);
+            document.getElementById('next-to-step-2').addEventListener('click', () => goToStep(2));
+            document.getElementById('back-to-step-1').addEventListener('click', () => goToStep(1));
+            document.getElementById('back-to-step-2').addEventListener('click', () => goToStep(2));
+            document.getElementById('story-input').addEventListener('input', e => { document.getElementById('generate-listing-btn').disabled = e.target.value.trim().length < 10; });
+            document.getElementById('generate-listing-btn').addEventListener('click', () => { goToStep(3); generateContentWithGemini(document.getElementById('story-input').value); });
+            document.getElementById('publish-btn').addEventListener('click', publishProduct);
+            document.getElementById('create-another-btn').addEventListener('click', resetFlow);
+            
+            resetFlow();
+            showView('create-product-view');
+        }
+
+        function goToStep(step) {
+            document.querySelectorAll('#create-product-view .form-section').forEach(el=>el.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+            document.querySelectorAll('#create-product-view .step-indicator').forEach((indicator, index) => {
+                const stepNum = index + 1;
+                indicator.classList.remove('active', 'completed');
+                if (stepNum < step) indicator.classList.add('completed');
+                else if (stepNum === step) indicator.classList.add('active');
+            });
+        }
+
+        function resetFlow() {
+            goToStep(1);
+            const form = document.getElementById('create-product-view');
+            if(form) {
+                form.querySelector('#photo-upload').value = '';
+                form.querySelector('#image-previews').innerHTML = '';
+                form.querySelector('#story-input').value = '';
+                form.querySelector('#success-message').classList.add('hidden');
+                uploadedImageUrls = [];
+            }
+        }
+
+        function handlePhotoUpload(e) {
+            const previews = document.getElementById('image-previews');
+            const errorDiv = document.getElementById('upload-error');
+            const nextBtn = document.getElementById('next-to-step-2');
+            const MAX_SIZE_BYTES = 500 * 1024;
+
+            previews.innerHTML = '';
+            if(errorDiv) errorDiv.classList.add('hidden');
+            nextBtn.disabled = true;
+            uploadedImageUrls = [];
+            
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+            const oversizedFiles = files.filter(file => file.size > MAX_SIZE_BYTES);
+            if (oversizedFiles.length > 0) {
+                if(errorDiv) {
+                    errorDiv.textContent = `Error: The file "${oversizedFiles[0].name}" is too large. Please keep images under 500KB.`;
+                    errorDiv.classList.remove('hidden');
+                }
+                return;
+            }
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = evt => {
+                    uploadedImageUrls.push(evt.target.result);
+                    previews.innerHTML += `<img src="${evt.target.result}" class="w-full h-32 object-cover rounded-lg">`;
+                };
+                reader.readAsDataURL(file);
+            });
+            nextBtn.disabled = false;
+        }
+        
+        async function generateContentWithGemini(story) {
+            document.getElementById('ai-text-generation').style.display = 'flex';
+            document.getElementById('listing-review').classList.add('hidden');
+
+            if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
+                showNotification("Gemini API key is not set. Please add it to the script.", "error");
+                document.getElementById('ai-text-generation').style.display = 'none';
+                document.getElementById('listing-review').classList.remove('hidden');
+                return;
+            }
+            
+            const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+            
+            const systemPrompt = "You are an expert e-commerce copywriter for Indian handicrafts. Based on the artisan's story, generate a JSON object with: a 'title' (max 60 chars), a 'description' (2 rich paragraphs), 'tags' (an array of 5 relevant strings), and a suggested 'price' (integer). Output only the raw JSON.";
+            const userQuery = `My product story is: "${story}"`;
+
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json"
+                    }
+                };
+
+                const response = await fetch(GEMINI_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API Error: ${response.status} - ${errorData.error.message}`);
+                }
+                
+                const result = await response.json();
+                const text = result.candidates[0].content.parts[0].text;
+                const data = JSON.parse(text);
+
+                document.getElementById('product-title').value = data.title;
+                document.getElementById('product-desc').value = data.description;
+                document.getElementById('product-tags').value = data.tags.join(', ');
+                document.getElementById('product-price').value = data.price;
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                showNotification("Could not generate content. Please try a different story.", "error");
+            } finally {
+                document.getElementById('ai-text-generation').style.display = 'none';
+                document.getElementById('listing-review').classList.remove('hidden');
+            }
+        }
+        
+        async function publishProduct() {
+            const publishBtn = document.getElementById('publish-btn');
+            setLoading(publishBtn, true, 'Publish');
+            
+            const productTitle = document.getElementById('product-title').value;
+            const product = { 
+                artisan_id: currentUser.uid, 
+                title: productTitle,
+                desc: document.getElementById('product-desc').value, 
+                tags: document.getElementById('product-tags').value.split(',').map(t=>t.trim()), 
+                price: Number(document.getElementById('product-price').value), 
+                images: uploadedImageUrls.length > 0 ? uploadedImageUrls : [`https://placehold.co/600x400/EEE/31343C?text=${encodeURIComponent(productTitle)}`], 
+                status: 'available', 
+                createdAt: serverTimestamp(), 
+                category: document.getElementById('product-category').value, 
+                color: document.getElementById('product-color').value 
+            };
+            try {
+                if (JSON.stringify(product).length > 900000) {
+                    product.images = [`https://placehold.co/600x400/EEE/31343C?text=${encodeURIComponent(productTitle)}`];
+                    showNotification("Images were too large and replaced with a placeholder.", "error");
+                }
+                const docRef = await addDoc(collection(db, "products"), product);
+                document.getElementById('doc-id').textContent = docRef.id;
+                document.querySelectorAll('#create-product-view .form-section').forEach(s => s.classList.remove('active'));
+                document.getElementById('success-message').classList.remove('hidden');
+            } catch (error) {
+                console.error("Error publishing product:", error);
+                showNotification("An unexpected error occurred while publishing.", "error");
+            } finally {
+                setLoading(publishBtn, false, 'Publish');
+            }
+        }
+    </script>
+</body>
+</html>
+
