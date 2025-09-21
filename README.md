@@ -89,13 +89,13 @@ Open index.html and paste your API key into the GEMINI_API_KEY constant at the t
 
 Install Firebase CLI and Run Locally:
 
-# Install the Firebase command-line tools
+## Install the Firebase command-line tools
 npm install -g firebase-tools
 
-# Log in to your Google account
+## Log in to your Google account
 firebase login
 
-# Test the app on a local server
+## Test the app on a local server
 firebase serve
 
 Your application should now be running on http://localhost:5000.
